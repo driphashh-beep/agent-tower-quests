@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Tower Quests</title>
+<link rel="icon" href="logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: game lobby for a crew of robots, confident and clean
+   IDEA: a tower's job board where players post leads for the agents
+   PICTURE: the glowing tower beside the sign-in
+   COLOUR/TYPE: near-black, white tower, cyan core; Space Grotesk + Inter
+   LAYOUT: hero, quest cards, my claims + leaderboard */
+:root{--bg:#0b0f14;--panel:#121820;--line:#1f2a35;--ink:#e8eef3;--mute:#8a99a8;--cy:#19d3e6;--ok:#3ddc84;--bad:#ff5c5c;--warn:#ffc94d}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:"Space Grotesk",sans-serif;line-height:1.1;margin:0}
+.band{padding:clamp(24px,4vw,56px) max(5vw,16px);max-width:1240px;margin:0 auto}
+.hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:32px;align-items:center}
+.hero h1{font-size:clamp(34px,5vw,52px);text-wrap:balance}
+.hero p{color:var(--mute);max-width:52ch}
+.hero img{width:100%;max-width:380px;justify-self:center;border-radius:28px;box-shadow:0 0 80px #19d3e633}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 20px;border-radius:12px;border:0;font:600 16px Inter,sans-serif;cursor:pointer;background:var(--cy);color:#04131a}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--cy);outline-offset:2px}
+.who{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:20px}
+.who img{width:44px;height:44px;border-radius:50%}
+.xp{font:700 20px "Space Grotesk";color:var(--cy)}
+h2{font-size:28px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:10px}
+.card h3{font-size:20px}
+.card p{margin:0;color:var(--mute);font-size:15px}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;flex-wrap:wrap}
+.tag{font-size:13px;color:var(--mute)}
+.pts{font:700 18px "Space Grotesk";color:var(--cy);white-space:nowrap}
+.two{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:32px}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.list li{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.list .s{font-size:13px;font-weight:600;white-space:nowrap}
+.pending{color:var(--warn)}.approved{color:var(--ok)}.rejected{color:var(--bad)}
+.rank{font:700 16px "Space Grotesk";color:var(--mute);width:2ch}
+.empty{color:var(--mute);font-size:15px}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:24px;width:min(520px,92vw)}
+dialog::backdrop{background:#000a}
+label{display:block;font-weight:600;margin:14px 0 6px}
+textarea,input{width:100%;font:16px Inter,sans-serif;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px}
+textarea{min-height:120px;resize:vertical}
+.row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.msg{min-height:1.5em;font-size:15px;margin-top:10px}
+.note{font-size:13px;color:var(--mute)}
+footer{color:var(--mute);font-size:13px;text-align:center;padding:32px 16px}
+@media(max-width:760px){.hero,.two{grid-template-columns:minmax(0,1fr)}.hero img{max-width:240px;order:-1}}
+@media(prefers-reduced-motion:no-preference){.hero img{animation:pulse 4s ease-in-out infinite}@keyframes pulse{50%{box-shadow:0 0 120px #19d3e655}}}
+</style>
+</head>
+<body>
+<header class="band hero">
+  <div>
+    <h1>Help the agents. Climb the tower.</h1>
+    <p>Scout, Zilla and the crew need intel. Spot businesses that are invisible online, flag broken listings, suggest sites to tear down. Every approved quest earns XP and becomes a real job for the agents.</p>
+    <div id="auth" class="who"><span class="empty">Loading…</span></div>
+  </div>
+  <img src="logo.svg" alt="Agent Tower">
+</header>
+
+<main>
+  <section class="band">
+    <h2>Quest board</h2>
+    <div id="quests" class="grid"><p class="empty">Loading quests…</p></div>
+  </section>
+  <section class="band two">
+    <div>
+      <h2>My claims</h2>
+      <ul id="claims" class="list"><li class="empty">Sign in to see your claims.</li></ul>
+    </div>
+    <div>
+      <h2>Leaderboard</h2>
+      <ul id="board" class="list"><li class="empty">Loading…</li></ul>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlg">
+  <form id="form">
+    <h3 id="dTitle">Quest</h3>
+    <p id="dDesc" class="note"></p>
+    <label for="sub">Your submission</label>
+    <textarea id="sub" maxlength="1500" required placeholder="Business name, what you found, why it matters"></textarea>
+    <label for="link">Link (optional)</label>
+    <input id="link" type="url" maxlength="300" placeholder="https://">
+    <p class="note">Every claim is reviewed before XP is awarded. Max 5 waiting at once.</p>
+    <div class="msg" id="dMsg"></div>
+    <div class="row">
+      <button type="button" class="btn ghost" id="cancel">Cancel</button>
+      <button type="submit" class="btn" id="send">Submit claim</button>
+    </div>
+  </form>
+</dialog>
+
+<footer>Agent Tower · MINEBOX × Crawl Space · Sign-in only reads your Discord name and avatar.</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+{
+const URL_ = 'https://vpbbrxgakgiijuxorayb.supabase.co';
+const KEY = 'sb_publishable_n-NcN3G1tibiX9KilJO2FA_eDM4XPUe';
+const sb = supabase.createClient(URL_, KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let user = null, quests = [], current = null;
+
+async function renderAuth(){
+  const box = $('auth');
+  if(!user){
+    box.innerHTML = '<button class="btn" id="login">Sign in with Discord</button><span class="note">Free. No password.</span>';
+    $('login').onclick = () => sb.auth.signInWithOAuth({provider:'discord', options:{redirectTo: location.origin + location.pathname}});
+    return;
+  }
+  const {data:p} = await sb.from('players').select('display_name,avatar_url,xp').eq('id', user.id).maybeSingle();
+  const name = p?.display_name || 'Player', xp = p?.xp ?? 0;
+  box.innerHTML = (p?.avatar_url && /^https:\/\//.test(p.avatar_url) ? `<img src="${esc(p.avatar_url)}" alt="">` : '') +
+    `<div><strong>${esc(name)}</strong><div class="xp">${xp} XP · ${esc(rank(xp))}</div></div>` +
+    '<button class="btn ghost" id="logout">Sign out</button>';
+  $('logout').onclick = async () => { await sb.auth.signOut(); };
+}
+function rank(xp){ return xp>=1000?'Architect':xp>=500?'Engineer':xp>=200?'Builder':xp>=50?'Runner':'Recruit'; }
+
+async function loadQuests(){
+  const {data, error} = await sb.from('quests').select('id,title,description,xp,agent').order('id');
+  if(error){ $('quests').innerHTML = '<p class="empty">Couldn\'t load quests. Refresh to try again.</p>'; return; }
+  quests = data || [];
+  $('quests').innerHTML = quests.length ? quests.map(q => `
+    <article class="card">
+      <h3>${esc(q.title)}</h3>
+      <p>${esc(q.description)}</p>
+      <div class="meta"><span class="tag">For ${esc(q.agent)}</span><span class="pts">+${Number(q.xp)} XP</span></div>
+      <button class="btn" data-q="${Number(q.id)}">${user ? 'Take quest' : 'Sign in to play'}</button>
+    </article>`).join('') : '<p class="empty">No active quests right now. Check back soon.</p>';
+  for(const b of document.querySelectorAll('[data-q]')) b.onclick = () => open(+b.dataset.q);
+}
+
+function open(id){
+  if(!user){ $('login')?.click(); return; }
+  current = quests.find(q => q.id === id); if(!current) return;
+  $('dTitle').textContent = current.title;
+  $('dDesc').textContent = current.description;
+  $('sub').value = ''; $('link').value = ''; $('dMsg').textContent = '';
+  $('dlg').showModal();
+}
+$('cancel').onclick = () => $('dlg').close();
+$('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const sub = $('sub').value.trim(), link = $('link').value.trim();
+  if(sub.length < 5){ $('dMsg').textContent = 'Add a bit more detail.'; return; }
+  if(link && !/^https?:\/\//i.test(link)){ $('dMsg').textContent = 'Links must start with https://'; return; }
+  $('send').disabled = true; $('dMsg').textContent = 'Sending…';
+  const {error} = await sb.from('quest_claims').insert({quest_id: current.id, submission: sub, link: link || null});
+  $('send').disabled = false;
+  if(error){ $('dMsg').textContent = /limit|waiting/i.test(error.message) ? error.message : 'Couldn\'t submit. Try again.'; return; }
+  $('dlg').close(); loadClaims();
+});
+
+async function loadClaims(){
+  if(!user){ $('claims').innerHTML = '<li class="empty">Sign in to see your claims.</li>'; return; }
+  const {data} = await sb.from('quest_claims').select('id,submission,status,created_at,quests(title,xp)').order('id',{ascending:false}).limit(20);
+  $('claims').innerHTML = (data && data.length) ? data.map(c => `
+    <li><div><strong>${esc(c.quests?.title)}</strong><div class="note">${esc(c.submission.slice(0,90))}${c.submission.length>90?'…':''}</div></div>
+    <span class="s ${esc(c.status)}">${c.status==='approved'?'+'+Number(c.quests?.xp)+' XP':esc(c.status)}</span></li>`).join('')
+    : '<li class="empty">No claims yet. Pick a quest above.</li>';
+}
+
+async function loadBoard(){
+  const {data} = await sb.from('players').select('display_name,xp').gt('xp',0).order('xp',{ascending:false}).limit(10);
+  $('board').innerHTML = (data && data.length) ? data.map((p,i) => `
+    <li><span class="rank">${i+1}</span><span style="flex:1">${esc(p.display_name)}</span><span class="pts">${Number(p.xp)} XP</span></li>`).join('')
+    : '<li class="empty">No one on the board yet. Be first.</li>';
+}
+
+async function refresh(){ await renderAuth(); await loadQuests(); loadClaims(); loadBoard(); }
+sb.auth.onAuthStateChange((_e, s) => { const u = s?.user || null; if(u?.id !== user?.id){ user = u; setTimeout(refresh, 0); } });
+sb.auth.getSession().then(({data}) => { user = data.session?.user || null; refresh(); });
+}
+</script>
+</body>
+</html>
